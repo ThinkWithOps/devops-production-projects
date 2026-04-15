@@ -11,9 +11,47 @@ env:
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
+  setup-cluster:
+    name: Apply Kubernetes Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Apply namespace and configmap
+        run: |
+          kubectl apply -f projects/01-food-delivery-eks-platform/k8s/namespace.yaml
+          kubectl apply -f projects/01-food-delivery-eks-platform/k8s/configmap.yaml
+
+      - name: Apply service manifests
+        run: |
+          for SVC in user-service restaurant-service order-service delivery-service; do
+            kubectl apply -f projects/01-food-delivery-eks-platform/k8s/${SVC}-deployment.yaml
+            kubectl apply -f projects/01-food-delivery-eks-platform/k8s/${SVC}-service.yaml
+            kubectl apply -f projects/01-food-delivery-eks-platform/k8s/${SVC}-hpa.yaml
+          done
+
+      - name: Apply ingress
+        run: |
+          kubectl apply -f projects/01-food-delivery-eks-platform/k8s/ingress/ingress.yaml
+
   build-and-deploy:
     name: Build and Deploy ${{ matrix.service }}
     runs-on: ubuntu-latest
+    needs: setup-cluster
     strategy:
       matrix:
         include:
@@ -56,7 +94,6 @@ jobs:
           docker push "${IMAGE_URI}:latest"
 
           echo "image=${IMAGE_URI}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          echo "Built and pushed ${IMAGE_URI}:${IMAGE_TAG}"
 
       - name: Update kubeconfig
         run: |
