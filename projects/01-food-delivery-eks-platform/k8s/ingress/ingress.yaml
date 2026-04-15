@@ -7,42 +7,47 @@ metadata:
     app.kubernetes.io/name: food-delivery-ingress
     app.kubernetes.io/version: "1.0.0"
   annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
     nginx.ingress.kubernetes.io/use-gzip: "true"
-    nginx.ingress.kubernetes.io/gzip-min-length: "1024"
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /api/users(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/users
+            pathType: Prefix
             backend:
               service:
                 name: user-service
                 port:
                   number: 8001
-          - path: /api/restaurants(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/restaurants
+            pathType: Prefix
             backend:
               service:
                 name: restaurant-service
                 port:
                   number: 8002
-          - path: /api/orders(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/orders
+            pathType: Prefix
             backend:
               service:
                 name: order-service
                 port:
                   number: 8003
-          - path: /api/delivery(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/delivery
+            pathType: Prefix
             backend:
               service:
                 name: delivery-service
                 port:
                   number: 8004
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

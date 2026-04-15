@@ -43,6 +43,8 @@ jobs:
             kubectl apply -f projects/01-food-delivery-eks-platform/k8s/${SVC}-service.yaml
             kubectl apply -f projects/01-food-delivery-eks-platform/k8s/${SVC}-hpa.yaml
           done
+          kubectl apply -f projects/01-food-delivery-eks-platform/k8s/frontend-deployment.yaml
+          kubectl apply -f projects/01-food-delivery-eks-platform/k8s/frontend-service.yaml
 
       - name: Apply ingress
         run: |
@@ -56,13 +58,15 @@ jobs:
       matrix:
         include:
           - service: user-service
-            port: 8001
+            context: services/user-service
           - service: restaurant-service
-            port: 8002
+            context: services/restaurant-service
           - service: order-service
-            port: 8003
+            context: services/order-service
           - service: delivery-service
-            port: 8004
+            context: services/delivery-service
+          - service: frontend
+            context: services/frontend
 
     steps:
       - name: Checkout
@@ -88,7 +92,7 @@ jobs:
 
           docker build -t "${IMAGE_URI}:${IMAGE_TAG}" \
                        -t "${IMAGE_URI}:latest" \
-                       ./projects/01-food-delivery-eks-platform/services/${{ matrix.service }}
+                       ./projects/01-food-delivery-eks-platform/${{ matrix.context }}
 
           docker push "${IMAGE_URI}:${IMAGE_TAG}"
           docker push "${IMAGE_URI}:latest"

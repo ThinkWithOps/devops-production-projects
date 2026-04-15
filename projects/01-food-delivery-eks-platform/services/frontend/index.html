@@ -29,7 +29,7 @@
 <body class="dark">
 <div id="root"></div>
 <script type="text/babel">
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = window.location.port === "8080" ? "http://localhost:8080" : "";
 
 // ─── Utility ────────────────────────────────────────────────────────────────
 function useLocalStorage(key, init) {

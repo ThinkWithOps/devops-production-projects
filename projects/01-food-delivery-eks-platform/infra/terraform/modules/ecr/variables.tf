@@ -15,7 +15,8 @@ variable "repository_names" {
     "food-delivery/user-service",
     "food-delivery/restaurant-service",
     "food-delivery/order-service",
-    "food-delivery/delivery-service"
+    "food-delivery/delivery-service",
+    "food-delivery/frontend"
   ]
 }
 
