@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodRush - Fast Food Delivery</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#f97316', 600: '#ea580c' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0f172a; color: #f1f5f9; }
+    .spinner { border: 3px solid #334155; border-top-color: #f97316; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="dark">
+<div id="root"></div>
+<script type="text/babel">
+const API_BASE_URL = "http://localhost:8080";
+
+// ─── Utility ────────────────────────────────────────────────────────────────
+function useLocalStorage(key, init) {
+  const [val, setVal] = React.useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
+    catch { return init; }
+  });
+  const set = (v) => { setVal(v); localStorage.setItem(key, JSON.stringify(v)); };
+  return [val, set];
+}
+
+function Spinner() {
+  return <div className="flex justify-center py-16"><div className="spinner"></div></div>;
+}
+
+function Toast({ msg, type }) {
+  if (!msg) return null;
+  const bg = type === "error" ? "bg-red-600" : "bg-green-600";
+  return (
+    <div className={`fixed top-4 right-4 z-50 ${bg} text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium`}>
+      {msg}
+    </div>
+  );
+}
+
+// ─── Star Rating ─────────────────────────────────────────────────────────────
+function Stars({ rating }) {
+  return (
+    <span className="text-yellow-400 text-sm">
+      {"★".repeat(Math.round(rating))}{"☆".repeat(5 - Math.round(rating))}
+      <span className="text-slate-400 ml-1">{rating.toFixed(1)}</span>
+    </span>
+  );
+}
+
+// ─── Home Page ───────────────────────────────────────────────────────────────
+function HomePage({ onSelect }) {
+  const [restaurants, setRestaurants] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    fetch(`${API_BASE_URL}/api/restaurants`)
+      .then(r => { if (!r.ok) throw new Error("Failed to load restaurants"); return r.json(); })
+      .then(data => setRestaurants(data))
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner />;
+  if (error) return <div className="text-center text-red-400 py-16">{error}</div>;
+
+  return (
+    <div>
+      <div className="text-center py-10">
+        <h1 className="text-4xl font-bold text-orange-500 mb-2">FoodRush</h1>
+        <p className="text-slate-400 text-lg">Delicious food delivered fast</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto px-4 pb-12">
+        {restaurants.map(r => (
+          <div
+            key={r.id}
+            onClick={() => onSelect(r)}
+            className="bg-slate-800 border border-slate-700 rounded-2xl p-6 cursor-pointer hover:border-orange-500 hover:bg-slate-750 transition-all duration-200 hover:shadow-xl hover:shadow-orange-500/10"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">{r.name}</h2>
+                <span className="inline-block bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded-full mt-1">{r.cuisine_type}</span>
+              </div>
+              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${r.is_open ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
+                {r.is_open ? 'OPEN' : 'CLOSED'}
+              </span>
+            </div>
+            <Stars rating={r.rating} />
+            <div className="mt-3 text-slate-400 text-sm space-y-1">
+              <p>⏱ {r.delivery_time_min} min estimated delivery</p>
+              <p>💵 Min order: ${r.min_order_amount.toFixed(2)}</p>
+              <p>📍 {r.address}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Restaurant Page ──────────────────────────────────────────────────────────
+function RestaurantPage({ restaurant, cart, onAddToCart, onBack, onViewCart }) {
+  const [data, setData] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    fetch(`${API_BASE_URL}/api/restaurants/${restaurant.id}`)
+      .then(r => r.json())
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, [restaurant.id]);
+
+  if (loading) return <Spinner />;
+  if (!data) return <div className="text-center text-red-400 py-16">Failed to load menu</div>;
+
+  const categories = [...new Set(data.menu.map(i => i.category))];
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 pb-16">
+      <div className="flex items-center gap-4 py-6">
+        <button onClick={onBack} className="text-orange-500 hover:text-orange-400 font-semibold text-sm">← Back</button>
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-white">{data.name}</h1>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-slate-400 text-sm">{data.cuisine_type}</span>
+            <Stars rating={data.rating} />
+            <span className="text-slate-400 text-sm">⏱ {data.delivery_time_min} min</span>
+          </div>
+        </div>
+        {cartCount > 0 && (
+          <button onClick={onViewCart} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
+            🛒 Cart ({cartCount})
+          </button>
+        )}
+      </div>
+
+      {categories.map(cat => (
+        <div key={cat} className="mb-8">
+          <h2 className="text-lg font-bold text-orange-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">{cat}</h2>
+          <div className="space-y-3">
+            {data.menu.filter(i => i.category === cat).map(item => {
+              const inCart = cart.find(c => c.menu_item_id === item.id);
+              return (
+                <div key={item.id} className="bg-slate-800 border border-slate-700 rounded-xl p-4 flex justify-between items-center">
+                  <div className="flex-1 pr-4">
+                    <p className="text-white font-semibold">{item.name}</p>
+                    <p className="text-slate-400 text-sm mt-1">{item.description}</p>
+                    <p className="text-orange-400 font-bold mt-2">${item.price.toFixed(2)}</p>
+                  </div>
+                  <button
+                    onClick={() => onAddToCart(item)}
+                    className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                      inCart ? 'bg-green-700 text-green-100' : 'bg-orange-500 hover:bg-orange-600 text-white'
+                    }`}
+                  >
+                    {inCart ? `✓ ${inCart.quantity} added` : '+ Add'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Cart Page ────────────────────────────────────────────────────────────────
+function CartPage({ cart, restaurant, onBack, onOrderPlaced, setCart }) {
+  const [address, setAddress] = React.useState("");
+  const [userId, setUserId] = React.useState("1");
+  const [loading, setLoading] = React.useState(false);
+  const [toast, setToast] = React.useState({ msg: "", type: "" });
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast({ msg: "", type: "" }), 4000);
+  };
+
+  const total = cart.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+
+  const updateQty = (itemId, delta) => {
+    setCart(prev =>
+      prev.map(i => i.menu_item_id === itemId ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i)
+          .filter(i => i.quantity > 0)
+    );
+  };
+
+  const placeOrder = async () => {
+    if (!address.trim()) { showToast("Please enter a delivery address", "error"); return; }
+    if (cart.length === 0) { showToast("Cart is empty", "error"); return; }
+    setLoading(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: parseInt(userId) || 1,
+          restaurant_id: restaurant.id,
+          items: cart,
+          delivery_address: address,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Order failed");
+      showToast("Order placed successfully!");
+      setTimeout(() => onOrderPlaced(data.id), 1500);
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 pb-16">
+      <Toast msg={toast.msg} type={toast.type} />
+      <div className="flex items-center gap-4 py-6">
+        <button onClick={onBack} className="text-orange-500 hover:text-orange-400 font-semibold text-sm">← Menu</button>
+        <h1 className="text-2xl font-bold text-white">Your Cart</h1>
+      </div>
+
+      {cart.length === 0 ? (
+        <div className="text-center text-slate-400 py-16">Your cart is empty</div>
+      ) : (
+        <>
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-6">
+            <p className="text-slate-400 text-sm mb-4 font-semibold uppercase tracking-wide">From {restaurant?.name}</p>
+            {cart.map(item => (
+              <div key={item.menu_item_id} className="flex justify-between items-center py-3 border-b border-slate-700 last:border-0">
+                <div>
+                  <p className="text-white font-medium">{item.name}</p>
+                  <p className="text-slate-400 text-sm">${item.unit_price.toFixed(2)} each</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => updateQty(item.menu_item_id, -1)} className="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-bold transition-colors">-</button>
+                  <span className="text-white font-bold w-4 text-center">{item.quantity}</span>
+                  <button onClick={() => updateQty(item.menu_item_id, 1)} className="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-bold transition-colors">+</button>
+                  <span className="text-orange-400 font-bold w-16 text-right">${(item.unit_price * item.quantity).toFixed(2)}</span>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-between items-center pt-4 mt-2">
+              <span className="text-lg font-bold text-white">Total</span>
+              <span className="text-2xl font-bold text-orange-500">${total.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-6 space-y-4">
+            <div>
+              <label className="text-slate-300 text-sm font-semibold block mb-2">User ID</label>
+              <input
+                type="number"
+                value={userId}
+                onChange={e => setUserId(e.target.value)}
+                className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-orange-500"
+                placeholder="1"
+              />
+            </div>
+            <div>
+              <label className="text-slate-300 text-sm font-semibold block mb-2">Delivery Address *</label>
+              <textarea
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-orange-500 resize-none"
+                rows={2}
+                placeholder="142 Maple Street, Brooklyn, NY 11201"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={placeOrder}
+            disabled={loading}
+            className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-lg transition-colors"
+          >
+            {loading ? "Placing Order..." : `Place Order • $${total.toFixed(2)}`}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Order Tracking Page ──────────────────────────────────────────────────────
+function TrackingPage({ orderId, onBack }) {
+  const [order, setOrder] = React.useState(null);
+  const [delivery, setDelivery] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  const STATUS_STEPS = ["pending", "confirmed", "preparing", "out_for_delivery", "delivered"];
+  const STATUS_LABELS = {
+    pending: "Order Placed",
+    confirmed: "Confirmed",
+    preparing: "Being Prepared",
+    out_for_delivery: "Out for Delivery",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+  };
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      const [orderResp, deliveryResp] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/orders/${orderId}`),
+        fetch(`${API_BASE_URL}/api/delivery/${orderId}`),
+      ]);
+      if (orderResp.ok) setOrder(await orderResp.json());
+      if (deliveryResp.ok) setDelivery(await deliveryResp.json());
+    } catch (e) {
+      console.error("Tracking fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  React.useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  if (loading) return <Spinner />;
+
+  const currentStep = order ? STATUS_STEPS.indexOf(order.status) : -1;
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 pb-16">
+      <div className="flex items-center gap-4 py-6">
+        <button onClick={onBack} className="text-orange-500 hover:text-orange-400 font-semibold text-sm">← Home</button>
+        <h1 className="text-2xl font-bold text-white">Track Order #{orderId}</h1>
+        <span className="ml-auto text-slate-500 text-xs">Refreshes every 5s</span>
+      </div>
+
+      {order && (
+        <>
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <p className="text-slate-400 text-sm">From</p>
+                <p className="text-white font-bold text-lg">{order.restaurant_name}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-slate-400 text-sm">Total</p>
+                <p className="text-orange-500 font-bold text-xl">${order.total_amount.toFixed(2)}</p>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="flex justify-between mb-2">
+                {STATUS_STEPS.map((s, i) => (
+                  <div key={s} className="flex flex-col items-center flex-1">
+                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold z-10 ${
+                      i <= currentStep ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-600 text-slate-600'
+                    }`}>
+                      {i < currentStep ? '✓' : i + 1}
+                    </div>
+                    <span className="text-xs text-slate-400 mt-1 text-center leading-tight">{STATUS_LABELS[s]}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="absolute top-4 left-4 right-4 h-0.5 bg-slate-600 -z-0">
+                <div
+                  className="h-full bg-orange-500 transition-all duration-500"
+                  style={{ width: `${currentStep >= 0 ? (currentStep / (STATUS_STEPS.length - 1)) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-6">
+            <h3 className="text-white font-bold mb-3">Order Items</h3>
+            {order.items.map((item, i) => (
+              <div key={i} className="flex justify-between text-sm py-1">
+                <span className="text-slate-300">{item.name} × {item.quantity}</span>
+                <span className="text-slate-400">${(item.unit_price * item.quantity).toFixed(2)}</span>
+              </div>
+            ))}
+            <p className="text-slate-400 text-sm mt-3">📍 {order.delivery_address}</p>
+          </div>
+
+          {delivery && (
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+              <h3 className="text-white font-bold mb-3">Delivery Agent</h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-slate-300">🛵 <span className="text-white font-semibold">{delivery.agent_name}</span></p>
+                <p className="text-slate-300">📍 Current location: <span className="text-white">{delivery.current_location}</span></p>
+                <p className="text-slate-300">⏱ ETA: <span className="text-orange-400 font-semibold">{delivery.estimated_minutes} minutes</span></p>
+                <p className="text-slate-300">Status: <span className={`font-semibold ${delivery.status === 'delivered' ? 'text-green-400' : 'text-orange-400'}`}>{delivery.status.replace(/_/g, ' ').toUpperCase()}</span></p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── App Shell ────────────────────────────────────────────────────────────────
+function App() {
+  const [trackedOrderId, setTrackedOrderId] = useLocalStorage("food-rush-order-id", null);
+  const [page, setPage] = React.useState(() => {
+    try {
+      const stored = localStorage.getItem("food-rush-order-id");
+      const parsed = stored ? JSON.parse(stored) : null;
+      return parsed ? "tracking" : "home";
+    } catch { return "home"; }
+  });
+  const [selectedRestaurant, setSelectedRestaurant] = React.useState(null);
+  const [cart, setCart] = useLocalStorage("food-rush-cart", []);
+
+  const handleSelectRestaurant = (r) => {
+    setSelectedRestaurant(r);
+    setCart([]);
+    setPage("restaurant");
+  };
+
+  const handleAddToCart = (item) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.menu_item_id === item.id);
+      if (existing) return prev.map(i => i.menu_item_id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { menu_item_id: item.id, name: item.name, quantity: 1, unit_price: item.price }];
+    });
+  };
+
+  const handleOrderPlaced = (orderId) => {
+    setCart([]);
+    setTrackedOrderId(orderId);
+    setPage("tracking");
+  };
+
+  const handleGoHome = () => {
+    setTrackedOrderId(null);
+    setPage("home");
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900">
+      <nav className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+        <button onClick={handleGoHome} className="text-2xl font-black text-orange-500 hover:text-orange-400">
+          🍔 FoodRush
+        </button>
+        <div className="flex gap-4 items-center">
+          {trackedOrderId && (
+            <button onClick={() => setPage("tracking")} className="text-sm text-slate-400 hover:text-white">
+              Track #{trackedOrderId}
+            </button>
+          )}
+          {cart.length > 0 && page === "restaurant" && (
+            <button onClick={() => setPage("cart")} className="bg-orange-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg">
+              🛒 {cart.reduce((s, i) => s + i.quantity, 0)}
+            </button>
+          )}
+        </div>
+      </nav>
+
+      {page === "home" && <HomePage onSelect={handleSelectRestaurant} />}
+      {page === "restaurant" && selectedRestaurant && (
+        <RestaurantPage
+          restaurant={selectedRestaurant}
+          cart={cart}
+          onAddToCart={handleAddToCart}
+          onBack={() => setPage("home")}
+          onViewCart={() => setPage("cart")}
+        />
+      )}
+      {page === "cart" && (
+        <CartPage
+          cart={cart}
+          restaurant={selectedRestaurant}
+          onBack={() => setPage("restaurant")}
+          onOrderPlaced={handleOrderPlaced}
+          setCart={setCart}
+        />
+      )}
+      {page === "tracking" && trackedOrderId && (
+        <TrackingPage
+          orderId={trackedOrderId}
+          onBack={handleGoHome}
+        />
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>

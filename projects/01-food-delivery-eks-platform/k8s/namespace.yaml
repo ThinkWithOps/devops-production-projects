@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: food-delivery
+  labels:
+    name: food-delivery
+    app.kubernetes.io/name: food-delivery
+    app.kubernetes.io/version: "1.0.0"

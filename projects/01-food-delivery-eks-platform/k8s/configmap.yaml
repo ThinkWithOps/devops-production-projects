@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-urls
+  namespace: food-delivery
+  labels:
+    app.kubernetes.io/name: service-urls
+    app.kubernetes.io/version: "1.0.0"
+data:
+  RESTAURANT_SERVICE_URL: "http://restaurant-service:8002"
+  ORDER_SERVICE_URL: "http://order-service:8003"
+  DELIVERY_SERVICE_URL: "http://delivery-service:8004"
+  USER_SERVICE_URL: "http://user-service:8001"
+  ORDER_SERVICE_FAILURE_MODE: "false"

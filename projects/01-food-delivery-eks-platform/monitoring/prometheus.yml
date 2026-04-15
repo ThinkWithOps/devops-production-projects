@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'food-delivery-monitor'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:8001']
+    metrics_path: /metrics
+
+  - job_name: 'restaurant-service'
+    static_configs:
+      - targets: ['restaurant-service:8002']
+    metrics_path: /metrics
+
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['order-service:8003']
+    metrics_path: /metrics
+
+  - job_name: 'delivery-service'
+    static_configs:
+      - targets: ['delivery-service:8004']
+    metrics_path: /metrics
