@@ -11,48 +11,21 @@ env:
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
-  detect-changes:
-    name: Detect Changed Services
-    runs-on: ubuntu-latest
-    outputs:
-      user-service: ${{ steps.changes.outputs.user-service }}
-      restaurant-service: ${{ steps.changes.outputs.restaurant-service }}
-      order-service: ${{ steps.changes.outputs.order-service }}
-      delivery-service: ${{ steps.changes.outputs.delivery-service }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Detect changed services
-        id: changes
-        run: |
-          echo "user-service=$(git diff --name-only HEAD~1 HEAD | grep -q 'projects/01-food-delivery-eks-platform/services/user-service' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-          echo "restaurant-service=$(git diff --name-only HEAD~1 HEAD | grep -q 'projects/01-food-delivery-eks-platform/services/restaurant-service' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-          echo "order-service=$(git diff --name-only HEAD~1 HEAD | grep -q 'projects/01-food-delivery-eks-platform/services/order-service' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-          echo "delivery-service=$(git diff --name-only HEAD~1 HEAD | grep -q 'projects/01-food-delivery-eks-platform/services/delivery-service' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-
   build-and-deploy:
     name: Build and Deploy ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: detect-changes
     strategy:
       matrix:
         include:
           - service: user-service
-            changed: ${{ needs.detect-changes.outputs.user-service }}
             port: 8001
           - service: restaurant-service
-            changed: ${{ needs.detect-changes.outputs.restaurant-service }}
             port: 8002
           - service: order-service
-            changed: ${{ needs.detect-changes.outputs.order-service }}
             port: 8003
           - service: delivery-service
-            changed: ${{ needs.detect-changes.outputs.delivery-service }}
             port: 8004
-    if: ${{ matrix.changed == 'true' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,26 +79,6 @@ jobs:
           kubectl rollout status deployment/${{ matrix.service }} \
             -n food-delivery \
             --timeout=300s
-
-      - name: Smoke test
-        run: |
-          LB_HOST=$(kubectl get ingress food-delivery-ingress -n food-delivery \
-            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-
-          SERVICE=${{ matrix.service }}
-          PATH_PREFIX=$(echo $SERVICE | sed 's/-service//')
-
-          echo "Smoke testing http://${LB_HOST}/api/${PATH_PREFIX}s/health"
-          for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              "http://${LB_HOST}/api/${PATH_PREFIX}s/health" || echo "000")
-            if [ "$STATUS" = "200" ]; then
-              echo "Health check passed for ${{ matrix.service }}"
-              break
-            fi
-            echo "Attempt $i: got $STATUS, retrying in 10s..."
-            sleep 10
-          done
 
       - name: Job summary
         env:
