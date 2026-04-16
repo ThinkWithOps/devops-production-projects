@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 AWS_REGION="${AWS_REGION:-us-east-1}"
 CLUSTER_NAME="${CLUSTER_NAME:-food-delivery-dev}"
+
+# Load AWS credentials from aws configure if not already set
+if [ -z "${AWS_ACCESS_KEY_ID:-}" ]; then
+  AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id 2>/dev/null || true)
+  AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key 2>/dev/null || true)
+  export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+fi
+export AWS_DEFAULT_REGION="${AWS_REGION}"
 K8S_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../k8s" && pwd)"
 
 echo "============================================"
