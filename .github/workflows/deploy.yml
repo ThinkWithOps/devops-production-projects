@@ -61,8 +61,7 @@ jobs:
             --namespace monitoring \
             --create-namespace \
             --values projects/01-food-delivery-eks-platform/k8s/monitoring/prometheus-values.yaml \
-            --wait \
-            --timeout 8m
+            --timeout 10m
 
   build-and-deploy:
     name: Build and Deploy ${{ matrix.service }}

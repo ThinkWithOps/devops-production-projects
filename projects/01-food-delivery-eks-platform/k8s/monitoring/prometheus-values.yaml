@@ -43,8 +43,14 @@ grafana:
   service:
     type: LoadBalancer
   persistence:
-    enabled: true
-    size: 5Gi
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
   sidecar:
     dashboards:
       enabled: true
@@ -55,21 +61,21 @@ grafana:
 prometheus:
   enabled: true
   prometheusSpec:
-    retention: 15d
+    retention: 7d
     resources:
       requests:
-        cpu: 200m
-        memory: 400Mi
+        cpu: 100m
+        memory: 256Mi
       limits:
-        cpu: 1000m
-        memory: 2Gi
+        cpu: 500m
+        memory: 512Mi
     storageSpec:
       volumeClaimTemplate:
         spec:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 20Gi
+              storage: 10Gi
     additionalScrapeConfigs:
       - job_name: 'food-delivery-services'
         kubernetes_sd_configs:
@@ -83,10 +89,10 @@ prometheus:
             regex: (user-service|restaurant-service|order-service|delivery-service)
 
 nodeExporter:
-  enabled: true
+  enabled: false
 
 kubeStateMetrics:
-  enabled: true
+  enabled: false
 
 kubelet:
   enabled: true
