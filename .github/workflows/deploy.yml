@@ -48,6 +48,7 @@ jobs:
 
       - name: Apply ingress
         run: |
+          kubectl delete ingress food-delivery-ingress -n food-delivery --ignore-not-found=true
           kubectl apply -f projects/01-food-delivery-eks-platform/k8s/ingress/ingress.yaml
 
   build-and-deploy:
