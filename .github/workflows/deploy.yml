@@ -51,6 +51,19 @@ jobs:
           kubectl delete ingress food-delivery-ingress -n food-delivery --ignore-not-found=true
           kubectl apply -f projects/01-food-delivery-eks-platform/k8s/ingress/ingress.yaml
 
+      - name: Install kube-prometheus-stack
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f projects/01-food-delivery-eks-platform/k8s/monitoring/grafana-dashboards-configmap.yaml
+          helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --create-namespace \
+            --values projects/01-food-delivery-eks-platform/k8s/monitoring/prometheus-values.yaml \
+            --wait \
+            --timeout 8m
+
   build-and-deploy:
     name: Build and Deploy ${{ matrix.service }}
     runs-on: ubuntu-latest
