@@ -64,6 +64,7 @@ jobs:
             --values projects/01-food-delivery-eks-platform/k8s/monitoring/prometheus-values.yaml \
             --set prometheusOperator.admissionWebhooks.enabled=false \
             --set prometheusOperator.admissionWebhooks.patch.enabled=false \
+            --set prometheusOperator.tls.enabled=false \
             --timeout 10m
 
   build-and-deploy:
