@@ -104,6 +104,22 @@ Built for DevOps engineers who want a portfolio project that shows real infrastr
 
 > Run `terraform destroy` after recording your demo to stop all charges.
 
+### Teardown Gotcha — Delete the NGINX LoadBalancer First
+
+Kubernetes creates a Network LoadBalancer for the NGINX ingress controller that Terraform doesn't manage. If you run `terraform destroy` without deleting it first, you'll get `DependencyViolation` errors on the VPC, subnets, and internet gateway.
+
+**Before running `terraform destroy`:**
+
+```bash
+# Find and delete the NGINX ingress LoadBalancer
+aws elbv2 delete-load-balancer --region us-east-1 \
+  --load-balancer-arn $(aws elbv2 describe-load-balancers --region us-east-1 \
+    --query "LoadBalancers[0].LoadBalancerArn" --output text)
+
+# Then destroy
+terraform destroy
+```
+
 ---
 
 ## Quick Start — Local Dev (3 Commands)
