@@ -4,7 +4,7 @@ metadata:
   name: food-delivery-users-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /users$2
+    nginx.ingress.kubernetes.io/rewrite-target: /users/$2
 spec:
   ingressClassName: nginx
   rules:
@@ -24,7 +24,7 @@ metadata:
   name: food-delivery-restaurants-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /restaurants$2
+    nginx.ingress.kubernetes.io/rewrite-target: /restaurants/$2
 spec:
   ingressClassName: nginx
   rules:
@@ -44,7 +44,7 @@ metadata:
   name: food-delivery-orders-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /orders$2
+    nginx.ingress.kubernetes.io/rewrite-target: /orders/$2
 spec:
   ingressClassName: nginx
   rules:
@@ -64,7 +64,7 @@ metadata:
   name: food-delivery-delivery-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /delivery$2
+    nginx.ingress.kubernetes.io/rewrite-target: /delivery/$2
 spec:
   ingressClassName: nginx
   rules:
