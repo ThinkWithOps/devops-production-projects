@@ -56,11 +56,14 @@ jobs:
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo update
           kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+          helm uninstall kube-prometheus-stack --namespace monitoring --ignore-not-found 2>/dev/null || true
           kubectl apply -f projects/01-food-delivery-eks-platform/k8s/monitoring/grafana-dashboards-configmap.yaml
           helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
             --namespace monitoring \
             --create-namespace \
             --values projects/01-food-delivery-eks-platform/k8s/monitoring/prometheus-values.yaml \
+            --set prometheusOperator.admissionWebhooks.enabled=false \
+            --set prometheusOperator.admissionWebhooks.patch.enabled=false \
             --timeout 10m
 
   build-and-deploy:
