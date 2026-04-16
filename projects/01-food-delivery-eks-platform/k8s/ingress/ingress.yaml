@@ -4,13 +4,13 @@ metadata:
   name: food-delivery-users-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /users/$2
+    nginx.ingress.kubernetes.io/rewrite-target: /users$1
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /api/users(/|$)(.*)
+          - path: /api/users(.*)
             pathType: ImplementationSpecific
             backend:
               service:
@@ -24,13 +24,13 @@ metadata:
   name: food-delivery-restaurants-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /restaurants/$2
+    nginx.ingress.kubernetes.io/rewrite-target: /restaurants$1
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /api/restaurants(/|$)(.*)
+          - path: /api/restaurants(.*)
             pathType: ImplementationSpecific
             backend:
               service:
@@ -44,13 +44,13 @@ metadata:
   name: food-delivery-orders-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /orders/$2
+    nginx.ingress.kubernetes.io/rewrite-target: /orders$1
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /api/orders(/|$)(.*)
+          - path: /api/orders(.*)
             pathType: ImplementationSpecific
             backend:
               service:
@@ -64,13 +64,13 @@ metadata:
   name: food-delivery-delivery-ingress
   namespace: food-delivery
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /delivery/$2
+    nginx.ingress.kubernetes.io/rewrite-target: /delivery$1
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /api/delivery(/|$)(.*)
+          - path: /api/delivery(.*)
             pathType: ImplementationSpecific
             backend:
               service:
