@@ -136,32 +136,23 @@ terraform plan
 terraform apply
 ```
 
-### Step 2 — Build and Push Docker Images
+### Step 2 — Configure GitHub Secrets
+
+Add these in **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | `terraform output -raw github_actions_access_key_id` |
+| `AWS_SECRET_ACCESS_KEY` | `terraform output -raw github_actions_secret_access_key` |
+| `AWS_ACCOUNT_ID` | `aws sts get-caller-identity --query Account --output text` |
+
+### Step 3 — Deploy via GitHub Actions
 
 ```bash
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-AWS_REGION=us-east-1
-ECR="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-
-aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR"
-
-for SVC in user-service restaurant-service order-service delivery-service; do
-  docker build -t "${ECR}/food-delivery/${SVC}:latest" services/${SVC}/
-  docker push "${ECR}/food-delivery/${SVC}:latest"
-done
+git push origin main
 ```
 
-### Step 3 — Deploy to EKS
-
-```bash
-# Update image references in manifests
-export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-for f in k8s/*-deployment.yaml; do
-  sed -i "s/ACCOUNT_ID/${ACCOUNT_ID}/g" "$f"
-done
-
-bash scripts/deploy-eks.sh
-```
+GitHub Actions automatically builds all 5 Docker images (4 services + frontend), pushes them to ECR, applies Kubernetes manifests, and rolls out to EKS. Watch the progress in the **Actions** tab.
 
 ---
 
@@ -379,7 +370,7 @@ pytest tests/ -v
 │   ├── modules/
 │   │   ├── vpc/                # VPC, subnets, IGW, NAT, route tables
 │   │   ├── eks/                # EKS cluster + node group + IAM roles
-│   │   ├── ecr/                # 4 ECR repos, scan on push, lifecycle policy
+│   │   ├── ecr/                # 5 ECR repos (4 services + frontend), scan on push, lifecycle policy
 │   │   └── iam/                # GitHub Actions IAM user + least-privilege policy
 │   ├── main.tf                 # Root module — wires everything together
 │   ├── variables.tf
@@ -430,7 +421,7 @@ pytest tests/ -v
 | Terraform modules | vpc / eks / ecr / iam modules with clean input/output contracts |
 | Least-privilege IAM | GitHub Actions user gets only the ECR + EKS permissions it needs |
 | ECR lifecycle policies | Keep last 10 images, scan on push to catch CVEs |
-| GitOps change detection | deploy.yml only builds the service whose files actually changed |
+| Matrix CI/CD | deploy.yml runs 5 parallel build-and-deploy jobs (one per service) with fail-fast: false so a single failure doesn't cancel the others |
 | Observability provisioning | Grafana datasource + dashboard auto-provisioned via YAML |
 
 ---
@@ -451,7 +442,7 @@ pytest tests/ -v
 
 7. **Prometheus scraping inside Docker Compose** — Services register their /metrics endpoint via prometheus-fastapi-instrumentator on startup. The prometheus.yml uses Docker DNS names (user-service:8001) which resolve within the food-delivery-network bridge network.
 
-8. **GitHub Actions only deploys changed services** — The deploy workflow uses `git diff HEAD~1 HEAD` to check which service directories changed, then uses a matrix strategy to only build and deploy the affected services, keeping CI fast and avoiding unnecessary ECR pushes.
+8. **NGINX ingress path rewriting** — The frontend calls `/api/restaurants` but the FastAPI service only knows `/restaurants`. The NGINX ingress uses per-service Ingress objects each with a `rewrite-target` annotation (`/api/restaurants(.*)` → `/restaurants$1`) to strip the `/api` prefix before forwarding to the backend, keeping service routes clean and portable.
 
 ---
 
