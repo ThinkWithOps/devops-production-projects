@@ -86,6 +86,20 @@ resource "aws_eks_cluster" "main" {
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
 }
 
+# ─── Launch Template (names EC2 instances in the console) ────────────────────
+resource "aws_launch_template" "node" {
+  name_prefix = "${var.project_name}-${var.environment}-node-"
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name        = "${var.project_name}-${var.environment}-node"
+      Project     = var.project_name
+      Environment = var.environment
+    }
+  }
+}
+
 # ─── EKS Node Group ──────────────────────────────────────────────────────────
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
@@ -94,6 +108,11 @@ resource "aws_eks_node_group" "main" {
   subnet_ids      = var.private_subnet_ids
 
   instance_types = [var.node_instance_type]
+
+  launch_template {
+    id      = aws_launch_template.node.id
+    version = aws_launch_template.node.latest_version
+  }
 
   scaling_config {
     desired_size = var.node_desired_size

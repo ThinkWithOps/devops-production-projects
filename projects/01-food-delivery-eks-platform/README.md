@@ -208,7 +208,7 @@ Add these secrets in **Settings → Secrets and variables → Actions**:
 | `AWS_ACCOUNT_ID` | `aws sts get-caller-identity --query Account --output text` |
 
 Workflows:
-- **deploy.yml** — triggered on push to `main`, detects changed services, builds + pushes to ECR, rolls out to EKS
+- **deploy.yml** — triggered on push to `main`, matrix strategy builds all 5 services in parallel, pushes to ECR, rolls out to EKS
 - **pr-checks.yml** — flake8 lint, pytest, terraform fmt + validate
 - **destroy.yml** — manual workflow with confirmation input to tear down infrastructure
 
@@ -402,7 +402,7 @@ pytest tests/ -v
 │   ├── ingress/ingress.yaml    # NGINX ingress routing
 │   └── monitoring/prometheus-values.yaml  # Helm values for kube-prometheus-stack
 ├── .github/workflows/
-│   ├── deploy.yml              # Push to main → detect changes → build → deploy
+│   ├── deploy.yml              # Push to main → matrix: 5 parallel builds → push ECR → rollout
 │   ├── pr-checks.yml           # lint + test + terraform fmt/validate
 │   └── destroy.yml             # Manual teardown with confirmation
 ├── tests/
