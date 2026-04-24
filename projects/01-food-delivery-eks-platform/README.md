@@ -84,7 +84,7 @@ Built for DevOps engineers who want a portfolio project that shows real infrastr
 | Frontend | React 18 (CDN), Tailwind CSS (CDN), single HTML file |
 | Reverse Proxy | NGINX (gzip, access log with response time) |
 | Containers | Docker, multi-stage builds, non-root user |
-| Orchestration | Kubernetes 1.29, EKS, HPA, Rolling Updates |
+| Orchestration | Kubernetes 1.32, EKS, HPA, Rolling Updates |
 | IaC | Terraform 1.5+, modules: vpc / eks / ecr / iam |
 | CI/CD | GitHub Actions (deploy, pr-checks, destroy) |
 | Monitoring | Prometheus + Grafana (kube-prometheus-stack) |
