@@ -58,3 +58,41 @@ module "iam" {
   ecr_repository_arns = values(module.ecr.repository_arns)
   eks_cluster_arn     = "arn:aws:eks:${var.aws_region}:*:cluster/${var.project_name}-${var.environment}"
 }
+
+resource "aws_eks_access_entry" "github_actions" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = module.iam.github_actions_user_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions_admin" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = module.iam.github_actions_user_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.github_actions]
+}
+
+resource "aws_eks_access_entry" "console_admins" {
+  count = length(var.eks_console_admin_principal_arns)
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = var.eks_console_admin_principal_arns[count.index]
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "console_admins" {
+  count = length(var.eks_console_admin_principal_arns)
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_eks_access_entry.console_admins[count.index].principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+}

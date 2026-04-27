@@ -39,3 +39,9 @@ variable "eks_node_max_size" {
   type        = number
   default     = 4
 }
+
+variable "eks_console_admin_principal_arns" {
+  description = "IAM user or role ARNs that should be able to view and administer Kubernetes resources from the EKS console"
+  type        = list(string)
+  default     = []
+}
