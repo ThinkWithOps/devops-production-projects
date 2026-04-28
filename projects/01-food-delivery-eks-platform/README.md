@@ -184,6 +184,8 @@ cd ../..
 
 ### Configure and Inspect EKS
 
+After the GitHub Actions deploy workflow finishes, verify the cluster and workloads:
+
 ```bash
 # Update kubeconfig for the project cluster
 aws eks update-kubeconfig --region us-east-1 --name food-delivery-dev
@@ -192,6 +194,7 @@ aws eks update-kubeconfig --region us-east-1 --name food-delivery-dev
 kubectl get nodes
 kubectl get pods -n food-delivery
 kubectl get svc -n food-delivery
+kubectl get ingress -n food-delivery
 kubectl get hpa -n food-delivery
 
 # Watch rollout status
