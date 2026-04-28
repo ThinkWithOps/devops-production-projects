@@ -47,10 +47,37 @@ jobs:
           kubectl apply -f projects/01-food-delivery-eks-platform/k8s/frontend-deployment.yaml
           kubectl apply -f projects/01-food-delivery-eks-platform/k8s/frontend-service.yaml
 
+      - name: Install ingress-nginx controller
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace ingress-nginx \
+            --create-namespace \
+            --set controller.service.type=LoadBalancer \
+            --wait \
+            --timeout 10m
+
       - name: Apply ingress
         run: |
           kubectl delete ingress food-delivery-ingress -n food-delivery --ignore-not-found=true
           kubectl apply -f projects/01-food-delivery-eks-platform/k8s/ingress/ingress.yaml
+
+      - name: Show app URL
+        run: |
+          echo "Waiting for ingress-nginx LoadBalancer hostname..."
+          for i in {1..30}; do
+            APP_HOST=$(kubectl get svc ingress-nginx-controller -n ingress-nginx \
+              -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+            if [ -n "${APP_HOST}" ]; then
+              echo "App URL: http://${APP_HOST}"
+              exit 0
+            fi
+            sleep 10
+          done
+          kubectl get svc ingress-nginx-controller -n ingress-nginx
+          echo "LoadBalancer hostname was not ready in time."
+          exit 1
 
       - name: Install kube-prometheus-stack
         run: |

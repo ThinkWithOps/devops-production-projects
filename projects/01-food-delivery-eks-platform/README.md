@@ -204,6 +204,11 @@ kubectl get svc -n food-delivery
 kubectl get ingress -n food-delivery
 kubectl get hpa -n food-delivery
 
+# Get the external FoodRush app URL
+APP_HOST=$(kubectl get svc ingress-nginx-controller -n ingress-nginx \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+echo "http://${APP_HOST}"
+
 # Watch rollout status
 kubectl rollout status deployment/user-service -n food-delivery
 kubectl rollout status deployment/restaurant-service -n food-delivery
