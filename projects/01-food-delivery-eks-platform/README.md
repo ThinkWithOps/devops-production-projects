@@ -42,35 +42,13 @@ Built for DevOps engineers who want a portfolio project that shows real infrastr
 
 ## Architecture
 
-```
-                                   ┌─────────────────────────────────────────────────────┐
-                                   │                  AWS EKS Cluster                    │
-  ┌──────────┐   ┌───────────┐     │  ┌─────────────────────────────────────────────┐    │
-  │  Browser │──▶│  NGINX    │     │  │            food-delivery namespace           │    │
-  │  / curl  │   │  :8080    │     │  │                                              │    │
-  └──────────┘   │  (proxy)  │     │  │  ┌──────────────┐   ┌────────────────────┐  │    │
-                 └─────┬─────┘     │  │  │ user-service │   │restaurant-service  │  │    │
-                       │           │  │  │   :8001      │   │    :8002           │  │    │
-          ┌────────────┼──────────┐│  │  │  (2 replicas)│   │  (2 replicas)      │  │    │
-          │            │          ││  │  └──────────────┘   └────────────────────┘  │    │
-          ▼            ▼          ▼│  │                                              │    │
-   /api/users  /api/restaurants  /api/orders   ┌──────────────┐  ┌───────────────┐  │    │
-          │            │          ││  │  │  │ order-service│  │delivery-service│  │    │
-          ▼            ▼          ▼│  │  │  │   :8003      │  │    :8004       │  │    │
-   user-service  restaurant-  order-svc│  │  │  (2 replicas)│  │  (2 replicas)  │  │    │
-      :8001        service:8002  :8003 │  │  └──────┬───────┘  └───────────────┘  │    │
-                                       │  │         │ HTTP call                    │    │
-   SQLite DB    SQLite DB    SQLite DB  │  │         ▼ restaurant-service           │    │
-                                       │  │  ┌─────────────────────────────────┐   │    │
-                                       │  │  │  HPA (min=2, max=6, CPU=70%)    │   │    │
-                                       │  │  └─────────────────────────────────┘   │    │
- ┌───────────────────────────────────┐ │  └─────────────────────────────────────────┘    │
- │        Observability Stack        │ │                                                  │
- │  Prometheus :9090  Grafana :3000  │ │  ┌─────────────┐  ┌──────────┐  ┌───────────┐  │
- │  /metrics scrape every 15s        │ │  │     VPC     │  │  2 AZs   │  │ NAT GW    │  │
- └───────────────────────────────────┘ │  └─────────────┘  └──────────┘  └───────────┘  │
-                                       └─────────────────────────────────────────────────┘
-```
+### Local to Production Overview
+
+![FoodRush local to production overview](./docs/images/Project-1-local-deployment-architecture.png)
+
+### AWS EKS Production Architecture
+
+![FoodRush AWS EKS production architecture](./docs/images/Project-1-EKS-deployment-architecture.png)
 
 ---
 
@@ -112,10 +90,13 @@ Kubernetes creates a Network LoadBalancer for the NGINX ingress controller that 
 **Before running `terraform destroy`:**
 
 ```bash
-# Find and delete the NGINX ingress LoadBalancer
-aws elbv2 delete-load-balancer --region us-east-1 \
-  --load-balancer-arn $(aws elbv2 describe-load-balancers --region us-east-1 \
-    --query "LoadBalancers[0].LoadBalancerArn" --output text)
+# Delete the NGINX ingress LoadBalancer created by Kubernetes
+LB_HOST=$(kubectl get svc ingress-nginx-controller -n ingress-nginx \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+LB_ARN=$(aws elbv2 describe-load-balancers --region us-east-1 \
+  --query "LoadBalancers[?DNSName=='${LB_HOST}'].LoadBalancerArn | [0]" \
+  --output text)
+aws elbv2 delete-load-balancer --region us-east-1 --load-balancer-arn "${LB_ARN}"
 
 # Then destroy
 terraform destroy
@@ -246,9 +227,12 @@ kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 
 ```bash
 # Delete the Kubernetes-managed NGINX LoadBalancer first
-aws elbv2 delete-load-balancer --region us-east-1 \
-  --load-balancer-arn $(aws elbv2 describe-load-balancers --region us-east-1 \
-    --query "LoadBalancers[0].LoadBalancerArn" --output text)
+LB_HOST=$(kubectl get svc ingress-nginx-controller -n ingress-nginx \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+LB_ARN=$(aws elbv2 describe-load-balancers --region us-east-1 \
+  --query "LoadBalancers[?DNSName=='${LB_HOST}'].LoadBalancerArn | [0]" \
+  --output text)
+aws elbv2 delete-load-balancer --region us-east-1 --load-balancer-arn "${LB_ARN}"
 
 # Destroy Terraform-managed infrastructure
 cd infra/terraform
@@ -343,8 +327,11 @@ Workflows:
 ### 1. Enable Failure Mode
 
 ```bash
-# Flip 50% of order requests to return HTTP 500
-docker compose up -d -e ORDER_SERVICE_FAILURE_MODE=true order-service
+# Linux/macOS/Git Bash
+ORDER_SERVICE_FAILURE_MODE=true docker compose up -d order-service
+
+# PowerShell
+$env:ORDER_SERVICE_FAILURE_MODE="true"; docker compose up -d order-service
 ```
 
 ### 2. Run Load Test
@@ -370,7 +357,11 @@ Panels to observe:
 ### 4. Disable Failure Mode
 
 ```bash
-docker compose up -d -e ORDER_SERVICE_FAILURE_MODE=false order-service
+# Linux/macOS/Git Bash
+ORDER_SERVICE_FAILURE_MODE=false docker compose up -d order-service
+
+# PowerShell
+$env:ORDER_SERVICE_FAILURE_MODE="false"; docker compose up -d order-service
 ```
 
 ---
