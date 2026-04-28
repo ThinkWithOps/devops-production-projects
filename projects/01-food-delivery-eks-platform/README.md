@@ -186,6 +186,13 @@ cd ../..
 
 After the GitHub Actions deploy workflow finishes, verify the cluster and workloads:
 
+> **AWS Console note:** To view Kubernetes resources in the EKS Console
+> (**Resources → Workloads → Pods/Deployments/Services**), sign in with an IAM
+> principal that has EKS cluster access, such as `devops-copilot` in this setup.
+> A root or normal AWS login may show the EKS cluster, VPC, EC2 nodes, and ECR
+> repositories, but it may not show pods unless that same principal is also
+> added to the cluster's EKS access entries.
+
 ```bash
 # Update kubeconfig for the project cluster
 aws eks update-kubeconfig --region us-east-1 --name food-delivery-dev
