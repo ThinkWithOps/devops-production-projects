@@ -65,22 +65,22 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=\"user-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"user-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "user-service",
               "refId": "A"
             },
             {
-              "expr": "sum(rate(http_requests_total{job=\"restaurant-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"restaurant-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "restaurant-service",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(http_requests_total{job=\"order-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"order-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "order-service",
               "refId": "C"
             },
             {
-              "expr": "sum(rate(http_requests_total{job=\"delivery-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"delivery-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "delivery-service",
               "refId": "D"
             }
@@ -115,22 +115,22 @@ data:
           "id": 2,
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=\"user-service\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{job=\"user-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"user-service\",status=\"5xx\",handler!=\"/metrics\"}[1m])) / sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"user-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "user-service error rate",
               "refId": "A"
             },
             {
-              "expr": "sum(rate(http_requests_total{job=\"restaurant-service\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{job=\"restaurant-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"restaurant-service\",status=\"5xx\",handler!=\"/metrics\"}[1m])) / sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"restaurant-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "restaurant-service error rate",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(http_requests_total{job=\"order-service\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{job=\"order-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"order-service\",status=\"5xx\",handler!=\"/metrics\"}[1m])) / sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"order-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "order-service error rate",
               "refId": "C"
             },
             {
-              "expr": "sum(rate(http_requests_total{job=\"delivery-service\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{job=\"delivery-service\"}[1m]))",
+              "expr": "sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"delivery-service\",status=\"5xx\",handler!=\"/metrics\"}[1m])) / sum(rate(http_requests_total{job=\"food-delivery-services\",service=\"delivery-service\",handler!=\"/metrics\"}[1m]))",
               "legendFormat": "delivery-service error rate",
               "refId": "D"
             }
@@ -175,22 +175,22 @@ data:
           "id": 3,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"user-service\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"food-delivery-services\",service=\"user-service\",handler!=\"/metrics\"}[5m])) by (le))",
               "legendFormat": "user-service p95",
               "refId": "A"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"restaurant-service\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"food-delivery-services\",service=\"restaurant-service\",handler!=\"/metrics\"}[5m])) by (le))",
               "legendFormat": "restaurant-service p95",
               "refId": "B"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"order-service\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"food-delivery-services\",service=\"order-service\",handler!=\"/metrics\"}[5m])) by (le))",
               "legendFormat": "order-service p95",
               "refId": "C"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"delivery-service\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"food-delivery-services\",service=\"delivery-service\",handler!=\"/metrics\"}[5m])) by (le))",
               "legendFormat": "delivery-service p95",
               "refId": "D"
             }
