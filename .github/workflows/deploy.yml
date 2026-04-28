@@ -5,6 +5,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "projects/01-food-delivery-eks-platform/services/**"
+      - "projects/01-food-delivery-eks-platform/tests/**"
+      - "projects/01-food-delivery-eks-platform/k8s/**"
+      - "projects/01-food-delivery-eks-platform/infra/**"
+      - "projects/01-food-delivery-eks-platform/scripts/**"
+      - "projects/01-food-delivery-eks-platform/docker-compose.yml"
+      - "projects/01-food-delivery-eks-platform/pytest.ini"
 
 env:
   AWS_REGION: us-east-1
