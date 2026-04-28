@@ -209,6 +209,11 @@ APP_HOST=$(kubectl get svc ingress-nginx-controller -n ingress-nginx \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 echo "http://${APP_HOST}"
 
+# Get the external Grafana dashboard URL
+GRAFANA_HOST=$(kubectl get svc food-delivery-grafana-lb -n monitoring \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+echo "http://${GRAFANA_HOST}"
+
 # Watch rollout status
 kubectl rollout status deployment/user-service -n food-delivery
 kubectl rollout status deployment/restaurant-service -n food-delivery
