@@ -69,13 +69,6 @@ prometheus:
       limits:
         cpu: 500m
         memory: 512Mi
-    storageSpec:
-      volumeClaimTemplate:
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 10Gi
     additionalScrapeConfigs:
       - job_name: 'food-delivery-services'
         kubernetes_sd_configs:
