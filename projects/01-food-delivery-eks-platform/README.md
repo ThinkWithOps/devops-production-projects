@@ -27,6 +27,7 @@ Built for DevOps engineers who want a portfolio project that shows real infrastr
 - [Tech Stack](#tech-stack)
 - [AWS Cost Breakdown](#aws-cost-breakdown)
 - [Quick Start — Local Dev](#quick-start--local-dev-3-commands)
+- [Required Commands](#required-commands)
 - [AWS EKS Deployment](#aws-eks-deployment)
 - [GitHub Actions Setup](#github-actions-setup) (includes where Docker images are stored)
 - [Observability Demo](#observability-demo)
@@ -131,6 +132,109 @@ bash scripts/bootstrap.sh
 ```
 
 Then open: http://localhost:8080
+
+---
+
+## Required Commands
+
+Run commands from the project directory unless a command changes into a deeper folder:
+
+```bash
+cd projects/01-food-delivery-eks-platform
+```
+
+### Local Development
+
+```bash
+# Start the full local stack
+bash scripts/bootstrap.sh
+
+# Stop the local stack
+docker compose down
+
+# Stop the stack and remove local volumes
+docker compose down -v
+```
+
+### Test and Validate
+
+```bash
+# Run the pytest suite
+pytest tests/ -v
+
+# Run Terraform formatting and validation
+cd infra/terraform
+terraform fmt -recursive
+terraform init
+terraform validate
+cd ../..
+```
+
+### Provision AWS Infrastructure
+
+```bash
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+terraform output
+cd ../..
+```
+
+### Configure and Inspect EKS
+
+```bash
+# Update kubeconfig for the project cluster
+aws eks update-kubeconfig --region us-east-1 --name food-delivery-dev
+
+# Inspect workloads
+kubectl get nodes
+kubectl get pods -n food-delivery
+kubectl get svc -n food-delivery
+kubectl get hpa -n food-delivery
+
+# Watch rollout status
+kubectl rollout status deployment/user-service -n food-delivery
+kubectl rollout status deployment/restaurant-service -n food-delivery
+kubectl rollout status deployment/order-service -n food-delivery
+kubectl rollout status deployment/delivery-service -n food-delivery
+```
+
+### Deploy Application
+
+```bash
+# Deploy through GitHub Actions by pushing to main
+git push origin main
+
+# Optional local deploy helper
+bash scripts/deploy-eks.sh
+```
+
+### Run Load and Observability Checks
+
+```bash
+# Run the built-in load test
+bash scripts/load-test.sh
+
+# Port-forward monitoring locally
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
+```
+
+### Tear Down AWS Resources
+
+```bash
+# Delete the Kubernetes-managed NGINX LoadBalancer first
+aws elbv2 delete-load-balancer --region us-east-1 \
+  --load-balancer-arn $(aws elbv2 describe-load-balancers --region us-east-1 \
+    --query "LoadBalancers[0].LoadBalancerArn" --output text)
+
+# Destroy Terraform-managed infrastructure
+cd infra/terraform
+terraform destroy
+cd ../..
+```
 
 ---
 
