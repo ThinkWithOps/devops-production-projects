@@ -272,11 +272,13 @@ Add these in **Settings → Secrets and variables → Actions**:
 
 ### Step 3 — Deploy via GitHub Actions
 
+Push application, Kubernetes, Terraform, or script changes to `main`, or run the workflow manually from the **Actions** tab:
+
 ```bash
 git push origin main
 ```
 
-GitHub Actions automatically builds all 5 Docker images (4 services + frontend), pushes them to ECR, applies Kubernetes manifests, and rolls out to EKS. Watch the progress in the **Actions** tab.
+GitHub Actions automatically builds all 5 Docker images (4 services + frontend), pushes them to ECR, applies Kubernetes manifests, and rolls out to EKS. README/docs-only changes do not trigger a deployment. Watch the progress in the **Actions** tab.
 
 ---
 
@@ -316,7 +318,7 @@ Add these secrets in **Settings → Secrets and variables → Actions**:
 | `AWS_ACCOUNT_ID` | `aws sts get-caller-identity --query Account --output text` |
 
 Workflows:
-- **deploy.yml** — triggered on push to `main`, matrix strategy builds all 5 services in parallel, pushes to ECR, rolls out to EKS
+- **deploy.yml** — triggered manually or on `main` pushes that change app, Kubernetes, Terraform, or script files; README/docs-only changes do not deploy
 - **pr-checks.yml** — flake8 lint, pytest, terraform fmt + validate
 - **destroy.yml** — manual workflow with confirmation input to tear down infrastructure
 
@@ -517,7 +519,7 @@ pytest tests/ -v
 │   ├── ingress/ingress.yaml    # NGINX ingress routing
 │   └── monitoring/prometheus-values.yaml  # Helm values for kube-prometheus-stack
 ├── .github/workflows/
-│   ├── deploy.yml              # Push to main → matrix: 5 parallel builds → push ECR → rollout
+│   ├── deploy.yml              # Manual or deploy-relevant push → build images → push ECR → rollout
 │   ├── pr-checks.yml           # lint + test + terraform fmt/validate
 │   └── destroy.yml             # Manual teardown with confirmation
 ├── tests/
